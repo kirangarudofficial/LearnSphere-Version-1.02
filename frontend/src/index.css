@@ -1,3 +1,165 @@
+/* Import Google Fonts - Inter (Premium feel) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+
+    /* Root Variables */
+    :root {
+        --color-primary: hsl(210, 100%, 56%);
+        --color-secondary: hsl(174, 70%, 42%);
+        --color-accent: hsl(270, 70%, 54%);
+        --transition-smooth: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    /* Base Typography */
+    body {
+        @apply font-sans antialiased;
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Improved Headings */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-bold tracking-tight;
+        text-wrap: balance;
+    }
+
+    h1 {
+        @apply text-5xl lg:text-6xl;
+    }
+
+    h2 {
+        @apply text-4xl lg:text-5xl;
+    }
+
+    h3 {
+        @apply text-3xl lg:text-4xl;
+    }
+
+    h4 {
+        @apply text-2xl lg:text-3xl;
+    }
+
+    h5 {
+        @apply text-xl lg:text-2xl;
+    }
+
+    h6 {
+        @apply text-lg lg:text-xl;
+    }
+
+    /* Improved Focus Styles */
+    *:focus-visible {
+        @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+    }
+
+    /* Custom Scrollbar (Webkit browsers) */
+    ::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-gray-100;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-gray-400 rounded-full;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-gray-500;
+    }
+
+    /* Firefox Scrollbar */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: hsl(220, 12%, 60%) hsl(220, 18%, 95%);
+    }
+
+    /* Selection Color */
+    ::selection {
+        @apply bg-primary-200 text-primary-900;
+    }
+
+    ::-moz-selection {
+        @apply bg-primary-200 text-primary-900;
+    }
+}
+
+@layer components {
+
+    /* Glassmorphism utility */
+    .glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .glass-dark {
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Gradient text utility */
+    .gradient-text {
+        @apply bg-clip-text text-transparent;
+        background-image: linear-gradient(to right, hsl(210, 100%, 56%), hsl(174, 70%, 42%));
+    }
+
+    /* Skeleton loading */
+    .skeleton {
+        @apply animate-pulse bg-gray-200 rounded;
+    }
+
+    /* Premium button base */
+    .btn-premium {
+        @apply relative overflow-hidden transition-all duration-200;
+    }
+
+    .btn-premium::before {
+        content: '';
+        @apply absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 transition-opacity duration-500;
+        transform: translateX(-100%);
+    }
+
+    .btn-premium:hover::before {
+        @apply opacity-20;
+        animation: shimmer 1.5s;
+    }
+}
+
+@layer utilities {
+
+    /* Animation delays */
+    .animation-delay-100 {
+        animation-delay: 100ms;
+    }
+
+    .animation-delay-200 {
+        animation-delay: 200ms;
+    }
+
+    .animation-delay-300 {
+        animation-delay: 300ms;
+    }
+
+    /* Transition utilities */
+    .transition-smooth {
+        transition-timing-function: var(--transition-smooth);
+    }
+}

@@ -1,44 +1,72 @@
 # Progress Service
 
-The Progress Service is responsible for tracking and managing student progress through courses in the Learning Hub platform.
+## Overview
+Tracks and manages student learning progress, completion status, and learning analytics.
 
-## Features
+## Responsibilities
 
-- Track student progress through courses
-- Record completion status for lessons and modules
-- Generate progress reports and analytics
-- Support for marking lessons as completed
-- Calculate progress percentages automatically
+- **Progress Tracking** - Track lesson/module completion
+- **Completion Analytics** - Calculate completion percentages
+- **Time Tracking** - Monitor time spent learning
+- **Learning Streaks** - Track daily/weekly streaks
+- **Milestone Tracking** - Achievement milestones
+- **Progress Reports** - Generate progress reports
 
 ## API Endpoints
 
-### REST API
+```http
+GET    /api/progress/:courseId           # Get course progress
+PUT    /api/progress/:courseId/lesson/:id # Mark lesson complete
+GET    /api/progress/stats               # Get user stats
+GET    /api/progress/streak              # Get learning streak
+POST   /api/progress/reset/:courseId     # Reset course progress
+GET    /api/progress/report/:courseId    # Get progress report
+```
 
-- `POST /api/progress` - Create a new progress record
-- `GET /api/progress` - Get all progress records (with optional filters)
-- `GET /api/progress/:id` - Get progress by ID
-- `PUT /api/progress/:id` - Update progress
-- `PUT /api/progress/:id/lesson/:lessonId` - Mark lesson as completed
-- `DELETE /api/progress/:id` - Delete progress
-- `GET /api/progress/report/course/:courseId` - Generate progress report for a course
+## Data Models
 
-### Microservice Patterns
+### UserProgress
+```typescript
+{
+  userId: string
+  courseId: string
+  lessonId: string
+  isCompleted: boolean
+  completedAt?: Date
+  timeSpent: number  // in seconds
+  lastAccessedAt: Date
+}
+```
 
-- `progress.findAll` - Find all progress records
-- `progress.findByUser` - Find progress records by user ID
-- `progress.findByCourse` - Find progress records by course ID
-- `progress.findByUserAndCourse` - Find progress record by user ID and course ID
-- `progress.findOne` - Find progress record by ID
-- `progress.create` - Create a new progress record
-- `progress.update` - Update a progress record
-- `progress.delete` - Delete a progress record
-- `progress.addCompletedLesson` - Mark a lesson as completed
-- `progress.generateReport` - Generate a progress report for a course
+### CourseProgress
+```typescript
+{
+  userId: string
+  courseId: string
+  completedLessons: number
+  totalLessons: number
+  completionPercentage: number
+  totalTimeSpent: number
+  startedAt: Date
+  lastAccessedAt: Date
+}
+```
 
-## Configuration
+## Business Logic
 
-The service runs on port 3012 and connects to RabbitMQ for microservice communication.
+### Progress Calculation
+```typescript
+completionPercentage = (completedLessons / totalLessons) * 100
+isComplete = completionPercentage === 100
+```
 
-## Documentation
+### Certificate Eligibility
+- Must complete 100% of lessons
+- Must complete all quizzes
+- Must pass final assessment (if applicable)
 
-Swagger documentation is available at `/api/progress/docs`.
+## Integration
+- **Course Service** - Lesson structure
+- **Certificate Service** - Trigger certificate generation
+- **Gamification Service** - Award points/badges
+- **Analytics Service** - Learning analytics

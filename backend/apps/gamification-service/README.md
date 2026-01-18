@@ -1,111 +1,55 @@
 # Gamification Service
 
-The Gamification Service manages engagement features like XP, badges, achievements, and leaderboards for the Learning Hub platform. It helps increase user motivation and retention through game-like elements.
+## Overview
+Points, badges, achievements, and leaderboards to drive engagement.
 
-## Features
-
-- Experience points (XP) system
-- Levels and progression
-- Badges and achievements
-- Leaderboards (global, course-specific)
-- Streaks and milestones
-- Activity rewards
+## Responsibilities
+- Points system management
+- Badge creation and awarding
+- Achievement tracking
+- Leaderboard management
+- Level progression
+- Reward redemption
+- Daily/weekly challenges
 
 ## API Endpoints
-
-### XP Management
-
-- `GET /gamification/users/:userId/xp` - Get user XP details
-- `POST /gamification/users/:userId/xp` - Award XP to user
-- `GET /gamification/users/:userId/level` - Get user level information
-
-### Badge Management
-
-- `GET /gamification/badges` - List all available badges
-- `GET /gamification/users/:userId/badges` - List user's earned badges
-- `POST /gamification/users/:userId/badges/:badgeId` - Award badge to user
-
-### Achievement Management
-
-- `GET /gamification/achievements` - List all achievements
-- `GET /gamification/users/:userId/achievements` - List user's achievements
-- `POST /gamification/users/:userId/achievements` - Record new achievement
-
-### Leaderboard Management
-
-- `GET /gamification/leaderboards` - List available leaderboards
-- `GET /gamification/leaderboards/:id` - Get specific leaderboard
-- `GET /gamification/leaderboards/:id/users/:userId` - Get user's position on leaderboard
-
-### Streak Management
-
-- `GET /gamification/users/:userId/streak` - Get user's current streak
-- `POST /gamification/users/:userId/streak/increment` - Increment user's streak
-- `POST /gamification/users/:userId/streak/reset` - Reset user's streak
-
-### Microservice Message Patterns
-
-- `gamification.xp.award` - Award XP to user
-- `gamification.badge.award` - Award badge to user
-- `gamification.achievement.record` - Record achievement
-- `gamification.streak.increment` - Increment streak
-- `gamification.leaderboard.update` - Update leaderboard
-- `gamification.user.progress` - Get user's gamification progress
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|--------|
-| `PORT` | HTTP port for the service | `3080` |
-| `DATABASE_URL` | PostgreSQL connection string | - |
-| `RABBITMQ_URL` | RabbitMQ connection string | - |
-| `REDIS_URL` | Redis connection string (for leaderboards) | - |
-
-## Running Locally
-
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Set up environment variables (create a `.env` file in the root directory)
-
-3. Generate Prisma client:
-   ```bash
-   npx prisma generate
-   ```
-
-4. Start the service:
-   ```bash
-   npm run start:dev gamification-service
-   ```
-
-## Docker Build and Run
-
-```bash
-# Build the Docker image
-docker build -t learning-hub/gamification-service -f apps/gamification-service/Dockerfile .
-
-# Run the container
-docker run -p 3080:3080 --env-file .env learning-hub/gamification-service
+```http
+GET    /api/gamification/points        # Get user points
+GET    /api/gamification/badges        # Get user badges
+GET    /api/gamification/leaderboard   # Get leaderboard
+POST   /api/gamification/award         # Award points/badge
+GET    /api/gamification/achievements  # Get achievements
+GET    /api/gamification/challenges    # Get active challenges
 ```
 
-## Kubernetes Deployment
+## Data Models
+```typescript
+interface UserPoints {
+  userId: string
+  totalPoints: number
+  level: number
+  rank: number
+  streak: number
+}
 
-```bash
-# Apply ConfigMap and Secrets first (create these separately)
-kubectl apply -f apps/gamification-service/k8s/secrets.yaml
-
-# Apply the deployment
-kubectl apply -f apps/gamification-service/k8s/deployment.yaml
+interface Badge {
+  id: string
+  name: string
+  description: string
+  icon: string
+  pointsRequired: number
+  rarity: 'common' | 'rare' | 'epic' | 'legendary'
+}
 ```
 
-## Testing
+## Point Awards
+- Complete lesson: 10 points
+- Complete quiz: 25 points
+- Perfect quiz score: 50 points
+- Complete course: 500 points
+- Daily login: 5 points
+- 7-day streak: 100 points
 
-```bash
-# Run unit tests
-npm run test gamification-service
-
-# Run e2e tests
-npm run test:e2e gamification-service
-```
+## Integration
+- Progress Service - Completion events
+- Assessment Service - Quiz scores

@@ -95,115 +95,150 @@ class ApiClient {
           correlationId: error.response?.headers['x-correlation-id'],
         });
 
-        // Handle token expiration
-        if (error.response?.status === 401 && this.token) {
-          this.clearToken();
+        // Retry logic for failed requests
+        const config = error.config;
+        if (!config || !config.url) return Promise.reject(error);
+
+        // Don't retry on client errors (4xx) except 429
+        if (error.response?.status && error.response.status >= 400 && error.response.status < 500 && error.response.status !== 429) {
+          // Handle token expiration
+          if (error.response?.status === 401 && this.token) {
+            this.clearToken();
+            window.location.href = '/';
+          }
+          return Promise.reject(error);
+        }
+
+        // Initialize retry count
+        config.__retryCount = config.__retryCount || 0;
+        const MAX_RETRIES = 3;
+
+        // Check if we've exceeded max retries
+        if (config.__retryCount >= MAX_RETRIES) {
+          return Promise.reject(error);
+        }
+
+        // Increment retry count
+        config.__retryCount += 1;
+
+        // Calculate exponential backoff delay
+        const backoffDelay = Math.pow(2, config.__retryCount) * 1000; // 2s, 4s, 8s
+
+        console.log(`[API] Retrying request (${config.__retryCount}/${MAX_RETRIES}) after ${backoffDelay}ms...`);
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+
+        // Retry the request
+        return this.client(config);
+      }
+
           // Dispatch logout event
           window.dispatchEvent(new CustomEvent('auth:logout'));
-        }
+  }
 
-        // Handle network errors
-        if (!error.response) {
-          throw new Error('Network error. Please check your connection.');
-        }
+  // Handle network errors
+  if(!error.response) {
+    throw new Error('Network error. Please check your connection.');
+  }
 
-        // Handle rate limiting
-        if (error.response.status === 429) {
-          const retryAfter = error.response.headers['retry-after'] || 60;
-          throw new Error(`Rate limit exceeded. Please try again in ${retryAfter} seconds.`);
-        }
+  // Handle rate limiting
+  if(error.response.status === 429) {
+  const retryAfter = error.response.headers['retry-after'] || 60;
+  throw new Error(`Rate limit exceeded. Please try again in ${retryAfter} seconds.`);
+}
 
-        throw error;
+throw error;
       }
     );
   }
 
   private generateCorrelationId(): string {
-    return `web-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-  }
+  return `web-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+}
 
   private loadTokenFromStorage() {
-    try {
-      const stored = localStorage.getItem('auth_token');
-      if (stored) {
-        this.token = stored;
-      }
-    } catch (error) {
-      console.warn('[API] Failed to load token from storage:', error);
+  try {
+    const stored = localStorage.getItem('auth_token');
+    if (stored) {
+      this.token = stored;
     }
+  } catch (error) {
+    console.warn('[API] Failed to load token from storage:', error);
   }
+}
 
   public setToken(token: string) {
-    this.token = token;
-    try {
-      localStorage.setItem('auth_token', token);
-    } catch (error) {
-      console.warn('[API] Failed to save token to storage:', error);
-    }
+  this.token = token;
+  try {
+    localStorage.setItem('auth_token', token);
+  } catch (error) {
+    console.warn('[API] Failed to save token to storage:', error);
   }
+}
 
   public clearToken() {
-    this.token = null;
-    try {
-      localStorage.removeItem('auth_token');
-    } catch (error) {
-      console.warn('[API] Failed to remove token from storage:', error);
-    }
+  this.token = null;
+  try {
+    localStorage.removeItem('auth_token');
+  } catch (error) {
+    console.warn('[API] Failed to remove token from storage:', error);
   }
+}
 
   public getToken(): string | null {
-    return this.token;
-  }
+  return this.token;
+}
 
   // Generic API methods
-  public async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.client.get(url, config);
-    return response.data;
-  }
+  public async get < T = any > (url: string, config ?: AxiosRequestConfig): Promise < ApiResponse < T >> {
+  const response = await this.client.get(url, config);
+  return response.data;
+}
 
-  public async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.client.post(url, data, config);
-    return response.data;
-  }
+  public async post < T = any > (url: string, data ?: any, config ?: AxiosRequestConfig): Promise < ApiResponse < T >> {
+  const response = await this.client.post(url, data, config);
+  return response.data;
+}
 
-  public async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.client.put(url, data, config);
-    return response.data;
-  }
+  public async put < T = any > (url: string, data ?: any, config ?: AxiosRequestConfig): Promise < ApiResponse < T >> {
+  const response = await this.client.put(url, data, config);
+  return response.data;
+}
 
-  public async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.client.patch(url, data, config);
-    return response.data;
-  }
+  public async patch < T = any > (url: string, data ?: any, config ?: AxiosRequestConfig): Promise < ApiResponse < T >> {
+  const response = await this.client.patch(url, data, config);
+  return response.data;
+}
 
-  public async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response = await this.client.delete(url, config);
-    return response.data;
-  }
+  public async delete <T = any > (url: string, config ?: AxiosRequestConfig): Promise < ApiResponse < T >> {
+  const response = await this.client.delete(url, config);
+  return response.data;
+}
 
   // Health check
-  public async healthCheck(): Promise<ApiResponse> {
-    return this.get('/health');
-  }
+  public async healthCheck(): Promise < ApiResponse > {
+  return this.get('/health');
+}
 
   // Upload files
-  public async uploadFile(file: File, onProgress?: (progress: number) => void): Promise<ApiResponse<{ url: string }>> {
-    const formData = new FormData();
-    formData.append('file', file);
+  public async uploadFile(file: File, onProgress ?: (progress: number) => void): Promise < ApiResponse < { url: string } >> {
+  const formData = new FormData();
+  formData.append('file', file);
 
-    // Align with backend README: /api/media/upload/single
-    return this.post('/media/upload/single', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress: (progressEvent) => {
-        if (onProgress && progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(progress);
-        }
-      },
-    });
-  }
+  // Align with backend README: /api/media/upload/single
+  return this.post('/media/upload/single', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    onUploadProgress: (progressEvent) => {
+      if (onProgress && progressEvent.total) {
+        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress(progress);
+      }
+    },
+  });
+}
 }
 
 // Create singleton instance

@@ -1,98 +1,190 @@
 # Auth Service
 
-The Auth Service is responsible for user authentication and authorization in the Learning Hub platform. It handles user registration, login, token management, OAuth integration, and password reset functionality.
+## Overview
+Authentication and authorization service providing secure user authentication, session management, and access control for the Learning Hub platform.
 
-## Features
+## Responsibilities
 
-- User registration and login
-- JWT token issuance and verification
-- Refresh token management
-- OAuth integration (Google)
-- Password reset functionality
-- Role-based access control integration
+### Core Functions
+- **User Authentication** - Login, logout, token management
+- **User Registration** - New user account creation and validation
+- **Password Management** - Password reset, change, recovery flows
+- **Token Management** - JWT token generation, validation, refresh
+- **Session Management** - User session tracking and invalidation
+- **Email Verification** - Account verification via email
+
+### Security Features
+- **JWT Authentication** - Stateless token-based authentication
+- **Refresh Tokens** - Automatic token refresh for seamless UX
+- **Password Hashing** - Bcrypt hashing with salt rounds
+- **Rate Limiting** - Brute force protection on login attempts
+- **Account Lockout** - Temporary lockout after failed attempts
 
 ## API Endpoints
 
-### Public Endpoints
+### Authentication
+```http
+POST   /api/auth/register           # Register new user
+POST   /api/auth/login              # User login
+POST   /api/auth/logout             # User logout
+POST   /api/auth/refresh            # Refresh access token
+GET    /api/auth/me                 # Get current user profile
+POST   /api/auth/verify-email       # Verify email address
+```
 
-- `POST /auth/register` - Register a new user
-- `POST /auth/login` - Authenticate a user and receive tokens
-- `POST /auth/refresh` - Refresh an access token using a refresh token
-- `POST /auth/logout` - Invalidate tokens
-- `GET /auth/oauth/:provider` - Initiate OAuth flow with a provider
-- `GET /auth/oauth/:provider/callback` - OAuth provider callback
-- `POST /auth/password-reset/request` - Request a password reset
-- `POST /auth/password-reset` - Reset password with token
+### Password Management
+```http
+POST   /api/auth/forgot-password    # Request password reset
+POST   /api/auth/reset-password     # Reset password with token
+PUT    /api/auth/change-password    # Change password (authenticated)
+```
 
-### Microservice Message Patterns
+### Token Operations
+```http
+POST   /api/auth/validate-token     # Validate JWT token
+POST   /api/auth/revoke-token       # Revoke refresh token
+GET    /api/auth/active-sessions    # List user's active sessions
+```
 
-- `auth.validateToken` - Validate a JWT token
-- `auth.getUserFromToken` - Get user information from a token
+## Data Models
+
+### User
+```typescript
+{
+  id: string
+  email: string
+  passwordHash: string
+  firstName: string
+  lastName: string
+  role: 'student' | 'instructor' | 'admin'
+  isEmailVerified: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+```
+
+### RefreshToken
+```typescript
+{
+  id: string
+  userId: string
+  token: string
+  expiresAt: Date
+  isRevoked: boolean
+}
+```
+
+## Dependencies
+
+### External Services
+- **Email Service** - For verification emails
+- **User Service** - For user profile management
+
+### Infrastructure
+- **PostgreSQL** - User and token storage
+- **Redis** - Session and rate limiting cache
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|--------|
-| `PORT` | HTTP port for the service | `3010` |
-| `DATABASE_URL` | PostgreSQL connection string | - |
-| `JWT_SECRET` | Secret for signing JWT tokens | - |
-| `JWT_EXPIRATION` | JWT token expiration time in seconds | `3600` |
-| `REFRESH_TOKEN_EXPIRATION` | Refresh token expiration time in seconds | `604800` |
-| `RABBITMQ_URL` | RabbitMQ connection string | - |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID | - |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | - |
-| `GOOGLE_CALLBACK_URL` | Google OAuth callback URL | - |
+```env
+# JWT Configuration
+JWT_SECRET=your-secret-key-min-32-chars
+JWT_EXPIRATION=15m
+JWT_REFRESH_EXPIRATION=7d
+JWT_ISSUER=learning-hub
+JWT_AUDIENCE=learning-hub-users
 
-## Running Locally
+# Security
+BCRYPT_SALT_ROUNDS=10
+MAX_LOGIN_ATTEMPTS=5
+LOCKOUT_DURATION=900000  # 15 minutes
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Set up environment variables (create a `.env` file in the root directory)
-
-3. Generate Prisma client:
-   ```bash
-   npx prisma generate
-   ```
-
-4. Run migrations:
-   ```bash
-   npx prisma migrate dev
-   ```
-
-5. Start the service:
-   ```bash
-   npm run start:dev auth-service
-   ```
-
-## Docker Build and Run
-
-```bash
-# Build the Docker image
-docker build -t learning-hub/auth-service -f apps/auth-service/Dockerfile .
-
-# Run the container
-docker run -p 3010:3010 --env-file .env learning-hub/auth-service
+# Email
+EMAIL_VERIFICATION_URL=http://localhost:3000/verify-email
+PASSWORD_RESET_URL=http://localhost:3000/reset-password
 ```
 
-## Kubernetes Deployment
+## Usage Example
 
-```bash
-# Apply ConfigMap and Secrets first (create these separately)
-kubectl apply -f apps/auth-service/k8s/secrets.yaml
+### User Registration
+```typescript
+POST /api/auth/register
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!",
+  "firstName": "John",
+  "lastName": "Doe"
+}
 
-# Apply the deployment
-kubectl apply -f apps/auth-service/k8s/deployment.yaml
+Response: 201 Created
+{
+  "success": true,
+  "data": {
+    "userId": "uuid",
+    "email": "user@example.com",
+    "message": "Verification email sent"
+  }
+}
 ```
 
-## Testing
+### User Login
+```typescript
+POST /api/auth/login
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "accessToken": "jwt-token",
+    "refreshToken": "refresh-token",
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "role": "student"
+    }
+  }
+}
+```
+
+## Security Best Practices
+
+1. **Never log passwords** - Even hashed passwords
+2. **Validate all inputs** - Email format, password strength
+3. **Use HTTPS only** - Never transmit credentials over HTTP
+4. **Implement rate limiting** - Prevent brute force attacks
+5. **Monitor failed attempts** - Alert on suspicious activity
+
+## Development
 
 ```bash
-# Run unit tests
-npm run test auth-service
+# Start the service
+npm run start:dev
 
-# Run e2e tests
-npm run test:e2e auth-service
+# Run tests
+npm run test
+
+# Run tests with coverage
+npm run test:cov
 ```
+
+## Monitoring
+
+### Health Check
+```http
+GET /health
+```
+
+### Metrics
+- Login success/failure rate
+- Token refresh rate
+- Active sessions count
+- Failed login attempts
+
+## Documentation
+- [JWT Best Practices](../docs/jwt-security.md)
+- [Password Policy](../docs/password-policy.md)
+- [Rate Limiting Strategy](../docs/rate-limiting.md)
